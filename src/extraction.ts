@@ -56,16 +56,29 @@ function formatTimeForTimezone(date: Date, timezone: string): string {
   }
 }
 
-const EXTRACTION_PROMPT = `You are a decision extraction agent. Given a block of recent conversation messages, extract ONLY:
+const EXTRACTION_PROMPT = `You are extracting durable content from a conversation before it gets compressed. This output is appended directly to the assistant's daily notes. It is the ONLY automatic bridge between conversation context and the file layer. If you miss something, it is gone.
 
-- Decisions made (technical, architectural, personal)
-- Commitments or promises ("I will...", "let's do X")
-- Outcomes or results ("deployed X", "fixed Y", "chose Z over W")
-- Rules or preferences stated ("never do X", "always use Y")
+Extract into these categories (skip any with no entries):
 
-Output plain text, one item per line. Each line should be a complete, self-contained statement.
-Do not include greetings, status updates, progress reports, or filler.
-If nothing qualifies, output exactly: (none)`;
+**Decided**: Architecture choices, policy changes, rule changes, tool selections. Include who approved and why when non-obvious. ("Operator approved switching extraction model to Opus (previous model was contaminating summaries)")
+
+**Shipped**: What deployed, changed, broke, or was fixed. Include filenames, ports, commit hashes, byte counts, config values. ("Deployed blog post to /var/www/site/, 73,342 bytes")
+
+**Committed**: Promises by either party, agreed next steps, items explicitly deferred with reason. ("Deferred memory indexer cron fix, blocked on path resolution")
+
+**Learned**: What broke and why, corrected assumptions, relearned facts. ("Cron jobs live in ~/.openclaw/cron/jobs.json, not system crontab. Assistant stated wrong location with full confidence.")
+
+One fact per line, prefixed with "- ". Lead with the outcome, not the story. Include the reason parenthetically when the decision would be unclear without it.
+
+Do NOT extract:
+- Debug steps, tool output, raw file contents, intermediate attempts
+- Transient state (PIDs, session IDs, progress percentages, "currently running")
+- Intentions not yet acted on ("planning to", "might", "considering")
+- Personal facts about the user (preferences, relationships, biographical details)
+- Conversation flow ("user asked", "assistant searched", "discussed options")
+- Editorializing ("successfully", "critical", "finally", "major breakthrough")
+
+If nothing qualifies, output: (none)`;
 
 /** Normalize message content to plain text for the extraction prompt. */
 function messageToText(msg: { role?: string; content?: unknown }): string {
